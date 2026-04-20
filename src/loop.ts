@@ -66,7 +66,9 @@ type RaceOutcome<T> =
 
 // Race an in-flight promise against abort and the loop deadline. The underlying
 // work cannot be cancelled by us, but we can stop waiting on it and unwind the
-// loop cleanly so the user never sits on a dead promise.
+// loop cleanly so the user never sits on a dead promise. If abort/timeout wins,
+// any late rejection from the abandoned work is observed and swallowed here so
+// it does not surface as an unhandledRejection.
 const raceAwait = async <T>(
   promise: Promise<T>,
   abortSignal: AbortSignal | undefined,
@@ -74,10 +76,14 @@ const raceAwait = async <T>(
   now: () => number,
 ): Promise<RaceOutcome<T>> => {
   if (abortSignal?.aborted) {
+    // Even if we do not wait on it, attach a no-op rejection handler so the
+    // promise never becomes an unhandled rejection.
+    promise.catch(() => undefined);
     return { kind: "aborted" };
   }
   const remaining = deadline - now();
   if (remaining <= 0) {
+    promise.catch(() => undefined);
     return { kind: "timeout" };
   }
 
@@ -103,7 +109,15 @@ const raceAwait = async <T>(
       (err) => {
         clearTimeout(timer);
         abortSignal?.removeEventListener("abort", onAbort);
-        // Propagate the error so the caller's try/catch sees it.
+        // Two cases:
+        //  - we are the first to settle: wrap the error so the caller's
+        //    try/catch sees it (we still have to deliver the error).
+        //  - timeout/abort already won: the error is stale but must be
+        //    observed to prevent an unhandledRejection. Swallowing it is
+        //    correct — the loop already decided to stop waiting on this work.
+        if (settled) {
+          return;
+        }
         settle({ kind: "ok", value: Promise.reject(err) as unknown as T });
       },
     );
