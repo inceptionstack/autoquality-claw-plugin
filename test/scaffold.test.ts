@@ -14,7 +14,7 @@ describe("Task 0 scaffold", () => {
       scripts?: Record<string, string>;
     };
 
-    expect(packageJson.name).toBe("@inceptionstack/auto-claw-plugin");
+    expect(packageJson.name).toBe("@royosherove/auto-claw-plugin");
     expect(packageJson.scripts).toMatchObject({
       build: "rm -rf dist && tsc -p tsconfig.build.json",
       test: "vitest run",

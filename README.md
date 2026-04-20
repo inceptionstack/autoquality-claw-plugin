@@ -21,21 +21,31 @@ Only when the host does **not** expose a client does the plugin fall back to con
 
 ## Install
 
-### Option A — from GitHub (most users)
+### Option A — via OpenClaw plugin CLI (recommended)
+
+From npm:
 
 ```bash
-npm install github:inceptionstack/autoquality-claw-plugin#v0.1.0
+openclaw plugins install @royosherove/auto-claw-plugin
+openclaw plugins enable auto-claw
+```
+
+From a local clone (dev / link mode):
+
+```bash
+git clone https://github.com/inceptionstack/autoquality-claw-plugin.git
+cd autoquality-claw-plugin && npm install && npm run build
+openclaw plugins install -l .
+openclaw plugins enable auto-claw
+```
+
+### Option B — plain npm (if you're wiring a plugin loader yourself)
+
+```bash
+npm install @royosherove/auto-claw-plugin
 ```
 
 The published tarball ships `dist/`, the manifest, and `examples/`. No build step on the consumer side.
-
-### Option B — from npm
-
-When the package is published to npm:
-
-```bash
-npm install @inceptionstack/auto-claw-plugin
-```
 
 ### Option C — from source
 
