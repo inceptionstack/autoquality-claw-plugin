@@ -1,0 +1,63 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: verify (node ${{ matrix.node }})
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ["20.x", "22.x"]
+    env:
+      # Supply-chain guard is enforced by scripts/check-package-age.mjs at
+      # preinstall. In CI on a fresh checkout that just pulled the committed
+      # lockfile, we rely on the lockfile's pinned versions — but to avoid
+      # flakes from npm registry publish timing, CI disables the guard.
+      # Production consumers who run `npm install` outside CI still get the
+      # quarantine.
+      SKIP_SUPPLY_CHAIN_CHECK: "1"
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Test
+        run: npm test
+
+      - name: Build
+        run: npm run build
+
+      - name: Smoke-check dist
+        run: |
+          test -f dist/plugin-entry.js || { echo "dist/plugin-entry.js missing"; exit 1; }
+          test -f dist/plugin-entry.d.ts || { echo "dist/plugin-entry.d.ts missing"; exit 1; }
+          echo "dist looks good"
+
+      - name: Upload dist
+        if: matrix.node == '22.x'
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+          if-no-files-found: error
+          retention-days: 14

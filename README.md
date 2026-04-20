@@ -13,26 +13,44 @@ It is built for teams that want a configurable post-turn quality gate without ha
 - Delivers the final user reply only after the loop terminates.
 - Appends a compact auto-claw summary when review activity occurred or the loop hit a limit.
 
+## LLM Provider
+
+`auto-claw` tries to **inherit the host's LLM** first. If OpenClaw exposes `runtime.getGatekeeperLlm()` — typical when OpenClaw is already configured for Bedrock, Mantle, OpenAI, or any other provider — the plugin uses that client directly. No plugin-side credentials needed.
+
+Only when the host does **not** expose a client does the plugin fall back to constructing its own Anthropic SDK client from the env var named by `anthropicApiKeyEnv` (default `ANTHROPIC_API_KEY`). The fallback exists so the plugin works standalone; in any real OpenClaw install, provider inheritance is the intended path.
+
 ## Install
 
-From this repo:
+### Option A — from GitHub (most users)
 
 ```bash
-npm install
-npm run build
+npm install github:inceptionstack/autoquality-claw-plugin#v0.1.0
 ```
 
-If you publish it:
+The published tarball ships `dist/`, the manifest, and `examples/`. No build step on the consumer side.
+
+### Option B — from npm
+
+When the package is published to npm:
 
 ```bash
 npm install @inceptionstack/auto-claw-plugin
 ```
 
+### Option C — from source
+
+```bash
+git clone https://github.com/inceptionstack/autoquality-claw-plugin.git
+cd autoquality-claw-plugin
+npm install
+npm run build
+```
+
 ## Enable In OpenClaw
 
-Build the plugin so `dist/plugin-entry.js` exists, then point OpenClaw at the repo/plugin directory according to your OpenClaw plugin-loading setup. The manifest file is [openclaw.plugin.json](./openclaw.plugin.json), and the runtime entry is `dist/plugin-entry.js`.
+Point OpenClaw at the installed package or the cloned directory using your OpenClaw plugin-loading config. The manifest file is [openclaw.plugin.json](./openclaw.plugin.json); the runtime entry is `dist/plugin-entry.js`.
 
-Configure the plugin under the `auto-claw` section in OpenClaw's plugin config. Example:
+Example OpenClaw config section:
 
 ```json
 {
@@ -43,7 +61,6 @@ Configure the plugin under the `auto-claw` section in OpenClaw's plugin config. 
         "config": {
           "enabled": true,
           "rulesPath": "review-rules.md",
-          "anthropicApiKeyEnv": "ANTHROPIC_API_KEY",
           "gatekeeperModel": "claude-haiku-4-5-20251001",
           "defaultReviewerModel": "claude-sonnet-4-6",
           "defaultFixerModel": "claude-sonnet-4-6",
@@ -61,13 +78,15 @@ Configure the plugin under the `auto-claw` section in OpenClaw's plugin config. 
 }
 ```
 
+When the host provides its own LLM, you do not need to set `anthropicApiKeyEnv` — it is only read on the fallback path.
+
 ## Configuration
 
 | Key | Purpose | Default |
 | --- | --- | --- |
 | `enabled` | Turns the plugin on/off without uninstalling it. | `true` |
 | `rulesPath` | Workspace-relative path to the markdown rules file. | `review-rules.md` |
-| `anthropicApiKeyEnv` | Env var containing the Anthropic API key. | `ANTHROPIC_API_KEY` |
+| `anthropicApiKeyEnv` | Fallback env var name for direct Anthropic SDK when the host does not expose an LLM. | `ANTHROPIC_API_KEY` |
 | `gatekeeperModel` | Model used for the decision step. | `claude-haiku-4-5-20251001` |
 | `defaultReviewerModel` | Default reviewer model when the gatekeeper does not override it. | `claude-sonnet-4-6` |
 | `defaultFixerModel` | Default fixer model when the gatekeeper does not override it. | `claude-sonnet-4-6` |
@@ -81,9 +100,7 @@ Configure the plugin under the `auto-claw` section in OpenClaw's plugin config. 
 
 ## review-rules.md
 
-The plugin ships an example rules file at [examples/review-rules.md](./examples/review-rules.md). Copy it into the root of the target workspace as `review-rules.md` and adapt it.
-
-Minimal example:
+Ship [examples/review-rules.md](./examples/review-rules.md) into the root of the target workspace and adapt it. Minimal example:
 
 ```md
 ---
@@ -115,3 +132,11 @@ npm run build
 npm test
 npx tsc --noEmit
 ```
+
+## CI/CD
+
+Every push and PR runs the GitHub Actions workflow in [`.github/workflows/ci.yml`](.github/workflows/ci.yml): install → typecheck → test → build. Release tags (`v*`) additionally publish the tarball as a GitHub Release asset via [`.github/workflows/release.yml`](.github/workflows/release.yml).
+
+## License
+
+MIT — see [LICENSE](./LICENSE).

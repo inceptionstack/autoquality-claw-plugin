@@ -1,16 +1,37 @@
 {
   "name": "@inceptionstack/auto-claw-plugin",
   "version": "0.1.0",
+  "description": "OpenClaw plugin: post-turn code review + fix loop against a workspace review-rules.md.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/inceptionstack/autoquality-claw-plugin.git"
+  },
+  "bugs": {
+    "url": "https://github.com/inceptionstack/autoquality-claw-plugin/issues"
+  },
+  "homepage": "https://github.com/inceptionstack/autoquality-claw-plugin#readme",
+  "keywords": ["openclaw", "plugin", "code-review", "agent"],
   "type": "module",
   "main": "./dist/plugin-entry.js",
   "types": "./dist/plugin-entry.d.ts",
+  "files": [
+    "dist/**/*",
+    "examples/**/*",
+    "openclaw.plugin.json",
+    "scripts/check-package-age.mjs",
+    ".npmrc",
+    "README.md",
+    "LICENSE"
+  ],
   "scripts": {
     "preinstall": "node scripts/check-package-age.mjs",
     "build": "rm -rf dist && tsc -p tsconfig.build.json",
     "test": "vitest run",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit -p tsconfig.json",
-    "lint": "tsc --noEmit -p tsconfig.json"
+    "lint": "tsc --noEmit -p tsconfig.json",
+    "prepack": "npm run build"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.65.0"
