@@ -38,3 +38,23 @@ export type PluginRuntime = {
   };
   getConfigSection<T>(sectionId: string): T | undefined;
 };
+
+export type PluginHookName =
+  | "after_tool_call"
+  | "subagent_spawned"
+  | "subagent_ended"
+  | "reply_dispatch";
+
+export type PluginHookRegistration = {
+  name: PluginHookName;
+  priority?: number;
+  pluginId?: string;
+  handler: (...args: unknown[]) => unknown;
+};
+
+export type PluginRegisterFn = (registration: PluginHookRegistration) => void;
+
+export type PluginEntry = {
+  id: string;
+  registerHooks(register: PluginRegisterFn, runtime: PluginRuntime): void | Promise<void>;
+};
