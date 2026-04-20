@@ -19,6 +19,7 @@ export type AfterToolCallCtx = {
 export type EditsCollectorOpts = {
   mutatingTools: string[];
   resolveRollupKey: (runId: string) => RollupKey;
+  trackSession?: (sessionKey: string | undefined, runId: string | undefined) => void;
 };
 
 const PATH_KEYS = ["file_path", "filePath", "filepath", "file", "path"] as const;
@@ -34,18 +35,41 @@ const extractFile = (params: Record<string, unknown>): string | undefined => {
   return undefined;
 };
 
+const isEventShape = (event: unknown): event is AfterToolCallEvent => {
+  if (!event || typeof event !== "object") {
+    return false;
+  }
+  const candidate = event as Partial<AfterToolCallEvent>;
+  return typeof candidate.toolName === "string" && typeof candidate.params === "object" && candidate.params !== null;
+};
+
+const isCtxShape = (ctx: unknown): ctx is AfterToolCallCtx => {
+  return !!ctx && typeof ctx === "object";
+};
+
 export function createEditsCollector(opts: EditsCollectorOpts) {
   const editsByKey = new Map<RollupKey, Edit[]>();
   const iterationByKey = new Map<RollupKey, number>();
   const mutatingTools = new Set(opts.mutatingTools.map((tool) => tool.toLowerCase()));
 
-  const onAfterToolCall = (event: AfterToolCallEvent, ctx: AfterToolCallCtx): void => {
+  const onAfterToolCall = (rawEvent: unknown, rawCtx: unknown): void => {
+    if (!isEventShape(rawEvent) || !isCtxShape(rawCtx)) {
+      return;
+    }
+
+    const event = rawEvent;
+    const ctx = rawCtx;
+    const runId = ctx.runId ?? event.runId;
+
+    // Track session→runId on every tool call (not only mutating ones) so
+    // subagent_spawned events that only carry sessionKey can map to a runId.
+    opts.trackSession?.(ctx.sessionKey, runId);
+
     const tool = event.toolName.toLowerCase();
     if (!mutatingTools.has(tool) || event.error) {
       return;
     }
 
-    const runId = ctx.runId ?? event.runId;
     if (!runId) {
       return;
     }
