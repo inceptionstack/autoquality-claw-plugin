@@ -4,7 +4,7 @@ import { dispatchReview } from "./dispatch-review.js";
 import { formatFinalMessage } from "./format-output.js";
 import { runAutoLoop } from "./loop.js";
 import type { PluginRuntime } from "./runtime-api.js";
-import { parseRules } from "./rules.js";
+import { parseRules, parseRulesWithWarnings } from "./rules.js";
 import type { Decision, Edit, LoopOutcome } from "./types.js";
 
 export type ReplyPayload = {
@@ -105,41 +105,77 @@ export function createReplyDispatchHandler(deps: CreateReplyDispatchHandlerDeps)
     const parentSessionKey = event.sessionKey ?? event.ctx?.sessionKey;
     const workspaceDir = event.ctx?.workspaceDir;
 
-    const rulesRaw = await deps.runtime.readWorkspaceFile(deps.config.rulesPath, { workspaceDir });
-    const rules = parseRules(rulesRaw);
-    const review =
-      deps.review ??
-      ((params: { reviewerAgentId?: string; reviewerModel?: string; task: string }) =>
-        dispatchReview({
-          runtime: deps.runtime,
-          parentSessionKey,
-          reviewerAgentId: params.reviewerAgentId ?? deps.config.reviewerAgentId,
-          reviewerModel: params.reviewerModel ?? deps.config.defaultReviewerModel,
-          task: params.task,
-          runTimeoutSeconds: deps.config.subagentRunTimeoutSeconds,
-        }));
-    const fix =
-      deps.fix ??
-      ((params: { fixerAgentId?: string; fixerModel?: string; prompt: string }) =>
-        dispatchFix({
-          runtime: deps.runtime,
-          parentSessionKey,
-          fixerAgentId: params.fixerAgentId ?? deps.config.fixerAgentId,
-          fixerModel: params.fixerModel ?? deps.config.defaultFixerModel,
-          prompt: params.prompt,
-          runTimeoutSeconds: deps.config.subagentRunTimeoutSeconds,
-        }));
-    const liveness = deps.config.emitLivenessUpdates
-      ? (message: string): void => {
-          ctx.dispatcher.sendBlockReply({ text: message });
-        }
-      : undefined;
+    // Tracks whether sendFinalReply was invoked so error paths never double-send.
+    let finalSent = false;
+    const deliverFinal = (text: string): void => {
+      if (finalSent) {
+        return;
+      }
+      finalSent = true;
+      const ok = ctx.dispatcher.sendFinalReply({ ...originalReply, text });
+      if (!ok) {
+        deps.runtime.logger.error("auto-claw: sendFinalReply reported delivery failure");
+      }
+      ctx.dispatcher.markComplete();
+    };
 
     try {
+      // Rule loading runs INSIDE the guarded region so a filesystem/parse
+      // failure still lets us deliver the original reply to the user.
+      let rules;
+      try {
+        const rulesRaw = await deps.runtime.readWorkspaceFile(deps.config.rulesPath, { workspaceDir });
+        if (!rulesRaw || !rulesRaw.trim()) {
+          deps.runtime.logger.warn(
+            `auto-claw: rules file '${deps.config.rulesPath}' missing or empty — using defaults`,
+          );
+          rules = parseRules(null);
+        } else {
+          const parsed = parseRulesWithWarnings(rulesRaw);
+          for (const warning of parsed.warnings) {
+            deps.runtime.logger.warn(`auto-claw: rules: ${warning}`);
+          }
+          rules = parsed.rules;
+        }
+      } catch (error) {
+        deps.runtime.logger.error(`auto-claw: failed reading rules file: ${String(error)}`);
+        rules = parseRules(null);
+      }
+
+      const review =
+        deps.review ??
+        ((params: { reviewerAgentId?: string; reviewerModel?: string; task: string }) =>
+          dispatchReview({
+            runtime: deps.runtime,
+            parentSessionKey,
+            reviewerAgentId: params.reviewerAgentId ?? deps.config.reviewerAgentId,
+            reviewerModel: params.reviewerModel ?? deps.config.defaultReviewerModel,
+            task: params.task,
+            runTimeoutSeconds: deps.config.subagentRunTimeoutSeconds,
+          }));
+      const fix =
+        deps.fix ??
+        ((params: { fixerAgentId?: string; fixerModel?: string; prompt: string }) =>
+          dispatchFix({
+            runtime: deps.runtime,
+            parentSessionKey,
+            fixerAgentId: params.fixerAgentId ?? deps.config.fixerAgentId,
+            fixerModel: params.fixerModel ?? deps.config.defaultFixerModel,
+            prompt: params.prompt,
+            runTimeoutSeconds: deps.config.subagentRunTimeoutSeconds,
+          }));
+      const liveness = deps.config.emitLivenessUpdates
+        ? (message: string): void => {
+            const ok = ctx.dispatcher.sendBlockReply({ text: message });
+            if (!ok) {
+              deps.runtime.logger.warn(`auto-claw: liveness block reply dropped: ${message}`);
+            }
+          }
+        : undefined;
+
       const outcome = await runAutoLoop({
         rules,
         rollupKey,
-        parentSessionKey,
         lastReplyText: originalText,
         maxIterations: deps.config.maxIterations,
         loopTimeoutMs: deps.config.loopTimeoutSeconds * 1000,
@@ -153,9 +189,14 @@ export function createReplyDispatchHandler(deps: CreateReplyDispatchHandlerDeps)
       });
       const finalText = formatFinalMessage({ originalReply: originalText, outcome });
 
-      ctx.dispatcher.sendFinalReply({ ...originalReply, text: finalText });
-      ctx.dispatcher.markComplete();
-      await ctx.dispatcher.waitForIdle();
+      deliverFinal(finalText);
+
+      // Post-send bookkeeping: never let this throw past the guard.
+      try {
+        await ctx.dispatcher.waitForIdle();
+      } catch (error) {
+        deps.runtime.logger.warn(`auto-claw: waitForIdle failed: ${String(error)}`);
+      }
       ctx.recordProcessed?.("completed");
       deps.editsCollector.clear(rollupKey);
 
@@ -166,8 +207,10 @@ export function createReplyDispatchHandler(deps: CreateReplyDispatchHandlerDeps)
       };
     } catch (error) {
       deps.runtime.logger.error(`auto-claw reply_dispatch failed: ${String(error)}`);
-      ctx.dispatcher.sendFinalReply({ ...originalReply, text: originalText });
-      ctx.dispatcher.markComplete();
+      // Surface the failure to the user instead of silently serving the
+      // pre-review reply — operators need to see when the gate broke.
+      const failureSuffix = `\n\n— auto-claw failed: ${String(error)} —`;
+      deliverFinal(originalText + failureSuffix);
       ctx.recordProcessed?.("error", { error: String(error) });
       deps.editsCollector.clear(rollupKey);
 
