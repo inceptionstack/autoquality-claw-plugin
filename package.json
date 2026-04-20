@@ -1,5 +1,5 @@
 {
-  "name": "@royosherove/auto-claw-plugin",
+  "name": "autoquality-claw",
   "version": "0.1.0",
   "description": "OpenClaw plugin: post-turn code review + fix loop against a workspace review-rules.md.",
   "license": "MIT",
@@ -12,12 +12,15 @@
     "url": "https://github.com/inceptionstack/autoquality-claw-plugin/issues"
   },
   "homepage": "https://github.com/inceptionstack/autoquality-claw-plugin#readme",
-  "keywords": ["openclaw", "plugin", "code-review", "agent", "openclaw-plugin"],
+  "keywords": [
+    "openclaw",
+    "plugin",
+    "code-review",
+    "agent",
+    "openclaw-plugin"
+  ],
   "engines": {
     "node": ">=20.0.0"
-  },
-  "publishConfig": {
-    "access": "public"
   },
   "type": "module",
   "main": "./dist/plugin-entry.js",

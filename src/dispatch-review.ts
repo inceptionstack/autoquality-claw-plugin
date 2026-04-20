@@ -35,7 +35,7 @@ export async function dispatchReview(input: DispatchReviewInput): Promise<Review
     {
       task: input.task,
       agentId: input.reviewerAgentId,
-      label: "auto-claw review",
+      label: "autoquality-claw review",
       model: input.reviewerModel,
       mode: "run",
       thread: false,
@@ -47,7 +47,7 @@ export async function dispatchReview(input: DispatchReviewInput): Promise<Review
   );
 
   if (result.status !== "ok") {
-    throw new Error(`auto-claw reviewer: ${result.status}: ${result.error ?? ""}`);
+    throw new Error(`autoquality-claw reviewer: ${result.status}: ${result.error ?? ""}`);
   }
 
   const rawText = String(result.summary ?? "");

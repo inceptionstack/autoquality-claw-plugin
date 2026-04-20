@@ -20,7 +20,7 @@ export async function dispatchFix(input: DispatchFixInput): Promise<DispatchFixR
     {
       task: input.prompt,
       agentId: input.fixerAgentId,
-      label: "auto-claw fix",
+      label: "autoquality-claw fix",
       model: input.fixerModel,
       mode: "run",
       thread: false,
@@ -33,7 +33,7 @@ export async function dispatchFix(input: DispatchFixInput): Promise<DispatchFixR
   );
 
   if (result.status !== "ok") {
-    throw new Error(`auto-claw fixer: ${result.status}: ${result.error ?? ""}`);
+    throw new Error(`autoquality-claw fixer: ${result.status}: ${result.error ?? ""}`);
   }
 
   return {

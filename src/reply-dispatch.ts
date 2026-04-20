@@ -114,7 +114,7 @@ export function createReplyDispatchHandler(deps: CreateReplyDispatchHandlerDeps)
       finalSent = true;
       const ok = ctx.dispatcher.sendFinalReply({ ...originalReply, text });
       if (!ok) {
-        deps.runtime.logger.error("auto-claw: sendFinalReply reported delivery failure");
+        deps.runtime.logger.error("autoquality-claw: sendFinalReply reported delivery failure");
       }
       ctx.dispatcher.markComplete();
     };
@@ -127,18 +127,18 @@ export function createReplyDispatchHandler(deps: CreateReplyDispatchHandlerDeps)
         const rulesRaw = await deps.runtime.readWorkspaceFile(deps.config.rulesPath, { workspaceDir });
         if (!rulesRaw || !rulesRaw.trim()) {
           deps.runtime.logger.warn(
-            `auto-claw: rules file '${deps.config.rulesPath}' missing or empty — using defaults`,
+            `autoquality-claw: rules file '${deps.config.rulesPath}' missing or empty — using defaults`,
           );
           rules = parseRules(null);
         } else {
           const parsed = parseRulesWithWarnings(rulesRaw);
           for (const warning of parsed.warnings) {
-            deps.runtime.logger.warn(`auto-claw: rules: ${warning}`);
+            deps.runtime.logger.warn(`autoquality-claw: rules: ${warning}`);
           }
           rules = parsed.rules;
         }
       } catch (error) {
-        deps.runtime.logger.error(`auto-claw: failed reading rules file: ${String(error)}`);
+        deps.runtime.logger.error(`autoquality-claw: failed reading rules file: ${String(error)}`);
         rules = parseRules(null);
       }
 
@@ -168,7 +168,7 @@ export function createReplyDispatchHandler(deps: CreateReplyDispatchHandlerDeps)
         ? (message: string): void => {
             const ok = ctx.dispatcher.sendBlockReply({ text: message });
             if (!ok) {
-              deps.runtime.logger.warn(`auto-claw: liveness block reply dropped: ${message}`);
+              deps.runtime.logger.warn(`autoquality-claw: liveness block reply dropped: ${message}`);
             }
           }
         : undefined;
@@ -195,7 +195,7 @@ export function createReplyDispatchHandler(deps: CreateReplyDispatchHandlerDeps)
       try {
         await ctx.dispatcher.waitForIdle();
       } catch (error) {
-        deps.runtime.logger.warn(`auto-claw: waitForIdle failed: ${String(error)}`);
+        deps.runtime.logger.warn(`autoquality-claw: waitForIdle failed: ${String(error)}`);
       }
       ctx.recordProcessed?.("completed");
       deps.editsCollector.clear(rollupKey);
@@ -206,10 +206,10 @@ export function createReplyDispatchHandler(deps: CreateReplyDispatchHandlerDeps)
         counts: ctx.dispatcher.getQueuedCounts(),
       };
     } catch (error) {
-      deps.runtime.logger.error(`auto-claw reply_dispatch failed: ${String(error)}`);
+      deps.runtime.logger.error(`autoquality-claw reply_dispatch failed: ${String(error)}`);
       // Surface the failure to the user instead of silently serving the
       // pre-review reply — operators need to see when the gate broke.
-      const failureSuffix = `\n\n— auto-claw failed: ${String(error)} —`;
+      const failureSuffix = `\n\n— autoquality-claw failed: ${String(error)} —`;
       deliverFinal(originalText + failureSuffix);
       ctx.recordProcessed?.("error", { error: String(error) });
       deps.editsCollector.clear(rollupKey);

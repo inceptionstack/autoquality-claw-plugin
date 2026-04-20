@@ -152,7 +152,7 @@ export async function runAutoLoop(input: AutoLoopInput): Promise<LoopOutcome> {
 
     iteration += 1;
     input.setIteration(input.rollupKey, iteration);
-    input.liveness?.(`auto-claw: iteration ${iteration}`);
+    input.liveness?.(`autoquality-claw: iteration ${iteration}`);
 
     let decision: Decision;
 
@@ -213,7 +213,7 @@ export async function runAutoLoop(input: AutoLoopInput): Promise<LoopOutcome> {
     }
 
     if (decision.action === "review") {
-      input.liveness?.("auto-claw: running reviewer...");
+      input.liveness?.("autoquality-claw: running reviewer...");
 
       const reviewRace = await raceAwait(
         input.review({
@@ -243,7 +243,7 @@ export async function runAutoLoop(input: AutoLoopInput): Promise<LoopOutcome> {
       continue;
     }
 
-    input.liveness?.("auto-claw: running fixer...");
+    input.liveness?.("autoquality-claw: running fixer...");
 
     const editsBefore = input.getEdits(input.rollupKey).length;
 

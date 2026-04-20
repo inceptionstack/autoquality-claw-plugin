@@ -10,7 +10,7 @@ import type {
 /**
  * Red test: if the host OpenClaw provides its own configured LLM via
  * runtime.getGatekeeperLlm?.() (e.g. a Bedrock / Mantle / OpenAI client
- * already wired up to the chosen provider), auto-claw MUST use it instead
+ * already wired up to the chosen provider), autoquality-claw MUST use it instead
  * of constructing a new Anthropic SDK client from ANTHROPIC_API_KEY.
  *
  * Behavior under test:

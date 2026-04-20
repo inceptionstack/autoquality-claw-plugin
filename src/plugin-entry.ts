@@ -29,9 +29,9 @@ const registerHook = (register: (registration: PluginHookRegistration) => void, 
 };
 
 export const plugin: PluginEntry = {
-  id: "auto-claw",
+  id: "autoquality-claw",
   async registerHooks(register, runtime: PluginRuntime): Promise<void> {
-    const config = loadConfig(runtime.getConfigSection("auto-claw"));
+    const config = loadConfig(runtime.getConfigSection("autoquality-claw"));
     const subagents = createSubagentRegistry();
     const edits = createEditsCollector({
       mutatingTools: config.mutatingTools,
@@ -46,7 +46,7 @@ export const plugin: PluginEntry = {
     const llm = hostLlm ?? createGatekeeperLlm({ apiKey, model: config.gatekeeperModel });
     if (!hostLlm && !apiKey) {
       runtime.logger.warn(
-        `auto-claw: no host-provided LLM via runtime.getGatekeeperLlm() and ${config.anthropicApiKeyEnv} is unset — gatekeeper calls will fail`,
+        `autoquality-claw: no host-provided LLM via runtime.getGatekeeperLlm() and ${config.anthropicApiKeyEnv} is unset — gatekeeper calls will fail`,
       );
     }
     const gatekeeper = createGatekeeper({ llm });
@@ -59,7 +59,7 @@ export const plugin: PluginEntry = {
 
     registerHook(register, {
       name: "after_tool_call",
-      pluginId: "auto-claw",
+      pluginId: "autoquality-claw",
       handler: async (event: unknown, ctx: unknown): Promise<void> => {
         edits.onAfterToolCall(event, ctx);
       },
@@ -67,7 +67,7 @@ export const plugin: PluginEntry = {
 
     registerHook(register, {
       name: "subagent_spawned",
-      pluginId: "auto-claw",
+      pluginId: "autoquality-claw",
       handler: async (rawEvent: unknown, rawCtx: unknown): Promise<void> => {
         const event = asObject(rawEvent) as SubagentSpawnedEvent | undefined;
         const ctx = asObject(rawCtx) as SubagentSpawnedContext | undefined;
@@ -101,7 +101,7 @@ export const plugin: PluginEntry = {
 
     registerHook(register, {
       name: "subagent_ended",
-      pluginId: "auto-claw",
+      pluginId: "autoquality-claw",
       handler: async (rawEvent: unknown): Promise<void> => {
         const event = asObject(rawEvent) as SubagentEndedEvent | undefined;
         const targetSessionKey = event && typeof event.targetSessionKey === "string" ? event.targetSessionKey : undefined;
@@ -114,7 +114,7 @@ export const plugin: PluginEntry = {
 
     registerHook(register, {
       name: "reply_dispatch",
-      pluginId: "auto-claw",
+      pluginId: "autoquality-claw",
       priority: 100,
       handler: async (event: unknown, ctx: unknown) =>
         onReplyDispatch(event as ReplyDispatchEvent, ctx as ReplyDispatchContext),

@@ -25,7 +25,7 @@ export function formatFinalMessage({ originalReply, outcome }: FormatInput): str
   const parts: string[] = [
     originalReply,
     "",
-    `- auto-claw · ${STATUS_LABELS[outcome.status]} · iterations: ${outcome.iterations} -`,
+    `- autoquality-claw · ${STATUS_LABELS[outcome.status]} · iterations: ${outcome.iterations} -`,
   ];
 
   for (const item of outcome.history) {

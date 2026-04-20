@@ -82,7 +82,7 @@ const buildUserPrompt = (input: GatekeeperInput): string => {
 };
 
 const SYSTEM_PROMPT =
-  "You are the auto-claw gatekeeper. Read review-rules.md verbatim and the current loop state, " +
+  "You are the autoquality-claw gatekeeper. Read review-rules.md verbatim and the current loop state, " +
   "then decide the single next step. Be deterministic: if rules say skip, approve. If the quality gate is met, approve. " +
   "Never request both review and fix in the same step.";
 

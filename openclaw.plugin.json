@@ -1,6 +1,6 @@
 {
-  "id": "auto-claw",
-  "name": "auto-claw",
+  "id": "autoquality-claw",
+  "name": "autoquality-claw",
   "version": "0.1.0",
   "description": "Deterministic post-turn code-review and fix auto-loop for openclaw agents.",
   "entry": "./dist/plugin-entry.js",

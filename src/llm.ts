@@ -13,7 +13,7 @@ export type DecideInput = {
 
 const DECIDE_TOOL = {
   name: "decide",
-  description: "Decide what to do next in the auto-claw review loop.",
+  description: "Decide what to do next in the autoquality-claw review loop.",
   input_schema: {
     type: "object",
     required: ["action"],

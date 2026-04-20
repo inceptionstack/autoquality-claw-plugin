@@ -31,7 +31,7 @@ describe("formatFinalMessage", () => {
     });
 
     expect(output).toContain("done.");
-    expect(output).toContain("auto-claw");
+    expect(output).toContain("autoquality-claw");
     expect(output).toContain("iterations: 3");
     expect(output).toContain("LGTM");
   });

@@ -182,7 +182,7 @@ describe("reply_dispatch hardening", () => {
     expect(result?.handled).toBe(true);
     const finalText = (calls.find((c) => c.method === "final")?.arg as { text?: string } | undefined)?.text ?? "";
     expect(finalText).toContain("hello");
-    expect(finalText).toContain("auto-claw failed");
+    expect(finalText).toContain("autoquality-claw failed");
     expect(logger.error).toHaveBeenCalled();
   });
 });

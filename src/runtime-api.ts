@@ -43,7 +43,7 @@ export type PluginRuntime = {
   getConfigSection<T>(sectionId: string): T | undefined;
   /**
    * Optional: if the host OpenClaw has an LLM already configured (Bedrock,
-   * Mantle, OpenAI, Anthropic, etc.), expose it here and auto-claw will use
+   * Mantle, OpenAI, Anthropic, etc.), expose it here and autoquality-claw will use
    * it for the gatekeeper instead of constructing its own Anthropic SDK
    * client from `ANTHROPIC_API_KEY`. This is how a consumer installs the
    * plugin on a non-Anthropic-direct provider without code changes.

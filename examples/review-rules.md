@@ -6,7 +6,7 @@ qualityGate: "reviewer reports zero error-severity issues AND every behavior cha
 
 # Project quality rules
 
-These rules control the auto-claw post-turn review loop. The gatekeeper LLM
+These rules control the autoquality-claw post-turn review loop. The gatekeeper LLM
 reads this file verbatim on every turn and decides what to do next.
 
 ## When to trigger a review

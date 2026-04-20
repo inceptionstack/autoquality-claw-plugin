@@ -32,7 +32,7 @@ export const defaultConfig: AutoClawConfig = {
 
 const assertInRange = (name: string, value: number, min: number, max: number): void => {
   if (value < min || value > max) {
-    throw new Error(`auto-claw: ${name} must be between ${min} and ${max} (got ${value})`);
+    throw new Error(`autoquality-claw: ${name} must be between ${min} and ${max} (got ${value})`);
   }
 };
 

@@ -43,7 +43,7 @@ async function wire() {
   return { runtime, byName };
 }
 
-describe("auto-claw end-to-end (mocked gatekeeper)", () => {
+describe("autoquality-claw end-to-end (mocked gatekeeper)", () => {
   it("runs the wiring hooks without invoking reply dispatch", async () => {
     const { byName, runtime } = await wire();
     const afterTool = byName("after_tool_call");

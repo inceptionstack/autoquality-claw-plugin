@@ -26,6 +26,6 @@ describe("plugin-entry", () => {
   });
 
   it("has a matching id", () => {
-    expect(plugin.id).toBe("auto-claw");
+    expect(plugin.id).toBe("autoquality-claw");
   });
 });

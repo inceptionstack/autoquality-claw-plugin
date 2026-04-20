@@ -14,7 +14,7 @@ describe("Task 0 scaffold", () => {
       scripts?: Record<string, string>;
     };
 
-    expect(packageJson.name).toBe("@royosherove/auto-claw-plugin");
+    expect(packageJson.name).toBe("autoquality-claw");
     expect(packageJson.scripts).toMatchObject({
       build: "rm -rf dist && tsc -p tsconfig.build.json",
       test: "vitest run",
@@ -36,7 +36,7 @@ describe("Task 0 scaffold", () => {
     const manifest = JSON.parse(manifestRaw) as { id?: string; entry?: string };
 
     expect(manifest).toMatchObject({
-      id: "auto-claw",
+      id: "autoquality-claw",
       entry: "./dist/plugin-entry.js",
     });
     expect(typesRaw).toContain("export type RollupKey = string;");

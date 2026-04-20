@@ -1,6 +1,6 @@
-# auto-claw
+# autoquality-claw
 
-`auto-claw` is an OpenClaw plugin that intercepts the final reply dispatch, reviews the turn's code edits against a workspace `review-rules.md`, and can run a deterministic review/fix loop before the user ever sees the final answer.
+`autoquality-claw` is an OpenClaw plugin that intercepts the final reply dispatch, reviews the turn's code edits against a workspace `review-rules.md`, and can run a deterministic review/fix loop before the user ever sees the final answer.
 
 It is built for teams that want a configurable post-turn quality gate without hardcoding project rules into the plugin itself. The rules live in markdown in the workspace, so changing the bar is a repo edit, not a plugin release.
 
@@ -11,11 +11,11 @@ It is built for teams that want a configurable post-turn quality gate without ha
 - Uses a gatekeeper LLM to decide whether to approve, review, fix, or stop.
 - Dispatches reviewer and fixer subagents when needed.
 - Delivers the final user reply only after the loop terminates.
-- Appends a compact auto-claw summary when review activity occurred or the loop hit a limit.
+- Appends a compact autoquality-claw summary when review activity occurred or the loop hit a limit.
 
 ## LLM Provider
 
-`auto-claw` tries to **inherit the host's LLM** first. If OpenClaw exposes `runtime.getGatekeeperLlm()` — typical when OpenClaw is already configured for Bedrock, Mantle, OpenAI, or any other provider — the plugin uses that client directly. No plugin-side credentials needed.
+`autoquality-claw` tries to **inherit the host's LLM** first. If OpenClaw exposes `runtime.getGatekeeperLlm()` — typical when OpenClaw is already configured for Bedrock, Mantle, OpenAI, or any other provider — the plugin uses that client directly. No plugin-side credentials needed.
 
 Only when the host does **not** expose a client does the plugin fall back to constructing its own Anthropic SDK client from the env var named by `anthropicApiKeyEnv` (default `ANTHROPIC_API_KEY`). The fallback exists so the plugin works standalone; in any real OpenClaw install, provider inheritance is the intended path.
 
@@ -26,8 +26,8 @@ Only when the host does **not** expose a client does the plugin fall back to con
 From npm:
 
 ```bash
-openclaw plugins install @royosherove/auto-claw-plugin
-openclaw plugins enable auto-claw
+openclaw plugins install autoquality-claw
+openclaw plugins enable autoquality-claw
 ```
 
 From a local clone (dev / link mode):
@@ -36,13 +36,13 @@ From a local clone (dev / link mode):
 git clone https://github.com/inceptionstack/autoquality-claw-plugin.git
 cd autoquality-claw-plugin && npm install && npm run build
 openclaw plugins install -l .
-openclaw plugins enable auto-claw
+openclaw plugins enable autoquality-claw
 ```
 
 ### Option B — plain npm (if you're wiring a plugin loader yourself)
 
 ```bash
-npm install @royosherove/auto-claw-plugin
+npm install autoquality-claw
 ```
 
 The published tarball ships `dist/`, the manifest, and `examples/`. No build step on the consumer side.
@@ -66,7 +66,7 @@ Example OpenClaw config section:
 {
   "plugins": {
     "entries": {
-      "auto-claw": {
+      "autoquality-claw": {
         "enabled": true,
         "config": {
           "enabled": true,
@@ -105,7 +105,7 @@ When the host provides its own LLM, you do not need to set `anthropicApiKeyEnv` 
 | `maxIterations` | Hard cap for loop iterations at the handler level. | `4` |
 | `loopTimeoutSeconds` | Total loop timeout. | `600` |
 | `subagentRunTimeoutSeconds` | Timeout per reviewer/fixer run. | `180` |
-| `emitLivenessUpdates` | Emits block replies such as `auto-claw: iteration 2`. | `true` |
+| `emitLivenessUpdates` | Emits block replies such as `autoquality-claw: iteration 2`. | `true` |
 | `mutatingTools` | Tools whose successful calls count as edits. | `["edit","write","apply_patch"]` |
 
 ## review-rules.md
