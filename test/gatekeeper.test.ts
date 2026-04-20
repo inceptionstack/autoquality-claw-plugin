@@ -58,11 +58,11 @@ describe("Gatekeeper.decide", () => {
     expect(decision.action).toBe("stop");
   });
 
-  it("forces stop when iteration >= rules.maxIterations", async () => {
-    const llm = { decide: vi.fn().mockResolvedValue({ action: "fix", fixerPrompt: "x" }) };
+  it("delegates to the llm on every iteration — the loop owns max-iteration bounds", async () => {
+    const llm = { decide: vi.fn().mockResolvedValue({ action: "approve" }) };
     const gatekeeper = createGatekeeper({ llm });
 
-    const decision = await gatekeeper.decide({
+    await gatekeeper.decide({
       rules: { ...DEFAULT_RULES, maxIterations: 2 },
       edits: [],
       history: [],
@@ -70,7 +70,6 @@ describe("Gatekeeper.decide", () => {
       lastReplyText: "x",
     });
 
-    expect(decision.action).toBe("stop");
-    expect(llm.decide).not.toHaveBeenCalled();
+    expect(llm.decide).toHaveBeenCalled();
   });
 });

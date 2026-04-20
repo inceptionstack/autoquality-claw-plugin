@@ -50,22 +50,13 @@ const buildUserPrompt = (input: GatekeeperInput): string => {
       : "(no history)";
 
   return [
-    "# Review rules",
+    "# Review rules (verbatim review-rules.md)",
+    input.rules.sections.raw || "(no rules file — using plugin defaults)",
+    "",
+    "# Parsed rule values",
     `minIterations: ${input.rules.minIterations}`,
     `maxIterations: ${input.rules.maxIterations}`,
     `qualityGate: ${input.rules.qualityGate}`,
-    "",
-    "## Trigger rules",
-    input.rules.sections.triggerRules,
-    "",
-    "## Skip rules",
-    input.rules.sections.skipRules,
-    "",
-    "## Reviewer instructions",
-    input.rules.sections.reviewerInstructions,
-    "",
-    "## Fixer instructions",
-    input.rules.sections.fixerInstructions,
     "",
     "# Current state",
     `iteration: ${input.iteration}`,
@@ -80,11 +71,13 @@ const buildUserPrompt = (input: GatekeeperInput): string => {
     historyBlock,
     "",
     "# Task",
-    'Decide the next step. Call the "decide" tool with one of:',
+    'Decide the single next step. Call the "decide" tool with one of:',
     '- "approve" (quality gate met, deliver to user)',
     '- "stop" (hard stop — include reason)',
     '- "review" (spawn reviewer — you may set reviewerModel / reviewerAgentId / focus)',
     '- "fix" (spawn fixer — you MUST include fixerPrompt; you may set fixerModel / fixerAgentId)',
+    "",
+    "Anything in the verbatim rules above that talks about models, escalation, or focus hints is authoritative — apply it.",
   ].join("\n");
 };
 
@@ -95,9 +88,10 @@ const SYSTEM_PROMPT =
 
 export function createGatekeeper(deps: GatekeeperDeps) {
   const decide = async (input: GatekeeperInput): Promise<Decision> => {
-    if (input.iteration >= input.rules.maxIterations) {
-      return { action: "stop", reason: `max iterations (${input.rules.maxIterations}) reached` };
-    }
+    // The loop is authoritative on max-iterations bounds (it applies
+    // effectiveMax = min(config, rules)). We don't duplicate that check here;
+    // returning "stop" from the gatekeeper would be reported as
+    // "stopped by gatekeeper" in the output instead of "max iterations".
 
     const rawDecision = await deps.llm.decide({
       system: SYSTEM_PROMPT,

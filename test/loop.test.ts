@@ -31,7 +31,6 @@ describe("runAutoLoop", () => {
     const output = await runAutoLoop({
       rules: DEFAULT_RULES,
       rollupKey: "root",
-      parentSessionKey: "ps",
       lastReplyText: "x",
       maxIterations: 5,
       loopTimeoutMs: 10_000,
@@ -50,7 +49,6 @@ describe("runAutoLoop", () => {
     const output = await runAutoLoop({
       rules: DEFAULT_RULES,
       rollupKey: "root",
-      parentSessionKey: "ps",
       lastReplyText: "x",
       maxIterations: 5,
       loopTimeoutMs: 10_000,
@@ -69,9 +67,8 @@ describe("runAutoLoop", () => {
     );
 
     const output = await runAutoLoop({
-      rules: DEFAULT_RULES,
+      rules: { ...DEFAULT_RULES, maxIterations: 10 },
       rollupKey: "root",
-      parentSessionKey: "ps",
       lastReplyText: "x",
       maxIterations: 5,
       loopTimeoutMs: 10_000,
@@ -95,7 +92,6 @@ describe("runAutoLoop", () => {
     const output = await runAutoLoop({
       rules: DEFAULT_RULES,
       rollupKey: "root",
-      parentSessionKey: "ps",
       lastReplyText: "x",
       maxIterations: 3,
       loopTimeoutMs: 10_000,
@@ -117,7 +113,6 @@ describe("runAutoLoop", () => {
     const output = await runAutoLoop({
       rules: DEFAULT_RULES,
       rollupKey: "root",
-      parentSessionKey: "ps",
       lastReplyText: "x",
       maxIterations: 5,
       loopTimeoutMs: 10_000,
