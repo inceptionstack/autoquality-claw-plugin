@@ -36,7 +36,7 @@ jobs:
           cache: npm
 
       - name: Install
-        run: npm ci
+        run: npm install --no-audit --no-fund
 
       - name: Supply-chain quarantine (7-day min release age)
         run: npm run supply-chain-check
