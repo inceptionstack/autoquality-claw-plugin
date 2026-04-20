@@ -1,26 +1,71 @@
 {
   "id": "autoquality-claw",
   "name": "autoquality-claw",
-  "version": "0.1.0",
-  "description": "Deterministic post-turn code-review and fix auto-loop for openclaw agents.",
-  "entry": "./dist/plugin-entry.js",
+  "version": "0.1.1",
+  "description": "Deterministic post-turn code-review and fix auto-loop plugin for OpenClaw agents.",
   "configSchema": {
-    "enabled": { "type": "boolean", "default": true },
-    "rulesPath": { "type": "string", "default": "review-rules.md" },
-    "anthropicApiKeyEnv": { "type": "string", "default": "ANTHROPIC_API_KEY" },
-    "gatekeeperModel": { "type": "string", "default": "claude-haiku-4-5-20251001" },
-    "defaultReviewerModel": { "type": "string", "default": "claude-sonnet-4-6" },
-    "defaultFixerModel": { "type": "string", "default": "claude-sonnet-4-6" },
-    "reviewerAgentId": { "type": "string", "default": "code-reviewer" },
-    "fixerAgentId": { "type": "string", "default": "coder" },
-    "maxIterations": { "type": "number", "default": 4 },
-    "loopTimeoutSeconds": { "type": "number", "default": 600 },
-    "subagentRunTimeoutSeconds": { "type": "number", "default": 180 },
-    "emitLivenessUpdates": { "type": "boolean", "default": true },
-    "mutatingTools": {
-      "type": "array",
-      "items": { "type": "string" },
-      "default": ["edit", "write", "apply_patch"]
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "enabled": {
+        "type": "boolean",
+        "default": true
+      },
+      "rulesPath": {
+        "type": "string",
+        "default": "review-rules.md"
+      },
+      "anthropicApiKeyEnv": {
+        "type": "string",
+        "default": "ANTHROPIC_API_KEY"
+      },
+      "gatekeeperModel": {
+        "type": "string",
+        "default": "claude-haiku-4-5-20251001"
+      },
+      "defaultReviewerModel": {
+        "type": "string",
+        "default": "claude-sonnet-4-6"
+      },
+      "defaultFixerModel": {
+        "type": "string",
+        "default": "claude-sonnet-4-6"
+      },
+      "reviewerAgentId": {
+        "type": "string",
+        "default": "code-reviewer"
+      },
+      "fixerAgentId": {
+        "type": "string",
+        "default": "coder"
+      },
+      "maxIterations": {
+        "type": "number",
+        "default": 4
+      },
+      "loopTimeoutSeconds": {
+        "type": "number",
+        "default": 600
+      },
+      "subagentRunTimeoutSeconds": {
+        "type": "number",
+        "default": 180
+      },
+      "emitLivenessUpdates": {
+        "type": "boolean",
+        "default": true
+      },
+      "mutatingTools": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "default": [
+          "edit",
+          "write",
+          "apply_patch"
+        ]
+      }
     }
   }
 }

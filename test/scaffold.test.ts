@@ -21,6 +21,7 @@ describe("Task 0 scaffold", () => {
       "test:watch": "vitest",
       typecheck: "tsc --noEmit -p tsconfig.json",
       lint: "tsc --noEmit -p tsconfig.json",
+      "supply-chain-check": "node scripts/check-package-age.mjs",
     });
   });
 
@@ -33,12 +34,19 @@ describe("Task 0 scaffold", () => {
       readFile(typesPath, "utf8"),
     ]);
 
-    const manifest = JSON.parse(manifestRaw) as { id?: string; entry?: string };
+    const manifest = JSON.parse(manifestRaw) as { id?: string };
 
     expect(manifest).toMatchObject({
       id: "autoquality-claw",
-      entry: "./dist/plugin-entry.js",
     });
+
+    // The runtime entry lives in package.json under `openclaw.extensions`,
+    // per https://docs.openclaw.ai/plugins/manifest (the manifest itself is
+    // for config validation + identity, not code entrypoints).
+    const pkg = JSON.parse(
+      await readFile(resolve(repoRoot, "package.json"), "utf8"),
+    ) as { openclaw?: { extensions?: string[] } };
+    expect(pkg.openclaw?.extensions).toEqual(["./dist/plugin-entry.js"]);
     expect(typesRaw).toContain("export type RollupKey = string;");
     expect(typesRaw).toContain("export type LoopOutcome = {");
   });

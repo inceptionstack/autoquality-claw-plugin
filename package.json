@@ -1,6 +1,6 @@
 {
   "name": "autoquality-claw",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "OpenClaw plugin: post-turn code review + fix loop against a workspace review-rules.md.",
   "license": "MIT",
   "author": "Roy Osherove",
@@ -25,22 +25,26 @@
   "type": "module",
   "main": "./dist/plugin-entry.js",
   "types": "./dist/plugin-entry.d.ts",
+  "openclaw": {
+    "extensions": [
+      "./dist/plugin-entry.js"
+    ]
+  },
   "files": [
     "dist/**/*",
     "examples/**/*",
     "openclaw.plugin.json",
-    "scripts/check-package-age.mjs",
-    ".npmrc",
     "README.md",
-    "LICENSE"
+    "LICENSE",
+    "CHANGELOG.md"
   ],
   "scripts": {
-    "preinstall": "node scripts/check-package-age.mjs",
     "build": "rm -rf dist && tsc -p tsconfig.build.json",
     "test": "vitest run",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "lint": "tsc --noEmit -p tsconfig.json",
+    "supply-chain-check": "node scripts/check-package-age.mjs",
     "prepack": "npm run build"
   },
   "dependencies": {
