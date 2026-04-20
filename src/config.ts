@@ -45,6 +45,7 @@ export function loadConfig(input: Partial<AutoClawConfig> | undefined): AutoClaw
 
   assertInRange("maxIterations", merged.maxIterations, 1, 20);
   assertInRange("loopTimeoutSeconds", merged.loopTimeoutSeconds, 10, 3600);
+  assertInRange("subagentRunTimeoutSeconds", merged.subagentRunTimeoutSeconds, 10, 3600);
 
   return merged;
 }

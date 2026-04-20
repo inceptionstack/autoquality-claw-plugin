@@ -37,16 +37,29 @@ const FRONTMATTER_PATTERN = /^---\n([\s\S]*?)\n---\n?([\s\S]*)$/;
 const KEY_VALUE_PATTERN = /^\s*([a-zA-Z]+)\s*:\s*(.+?)\s*$/;
 const SECTION_HEADER_PATTERN = /^##\s+(.+?)\s*$/;
 
+const parsePositiveInt = (value: string): number | undefined => {
+  const trimmed = value.trim();
+  if (!/^\d+$/.test(trimmed)) {
+    return undefined;
+  }
+  const parsed = Number(trimmed);
+  if (!Number.isFinite(parsed) || parsed < 0) {
+    return undefined;
+  }
+  return parsed;
+};
+
 const parseFrontmatter = (
   input: string,
-): { body: string; values: Partial<Pick<ReviewRules, "minIterations" | "maxIterations" | "qualityGate">> } => {
+): { body: string; values: Partial<Pick<ReviewRules, "minIterations" | "maxIterations" | "qualityGate">>; warnings: string[] } => {
   const match = input.match(FRONTMATTER_PATTERN);
   if (!match) {
-    return { body: input, values: {} };
+    return { body: input, values: {}, warnings: [] };
   }
 
   const [, frontmatter, body = ""] = match;
   const values: Partial<Pick<ReviewRules, "minIterations" | "maxIterations" | "qualityGate">> = {};
+  const warnings: string[] = [];
 
   for (const line of frontmatter.split("\n")) {
     const keyValueMatch = line.match(KEY_VALUE_PATTERN);
@@ -58,12 +71,22 @@ const parseFrontmatter = (
     const value = rawValue.replace(/^["']|["']$/g, "");
 
     if (key === "minIterations") {
-      values.minIterations = Number(value);
+      const parsed = parsePositiveInt(value);
+      if (parsed === undefined) {
+        warnings.push(`invalid minIterations '${value}' — using default`);
+        continue;
+      }
+      values.minIterations = parsed;
       continue;
     }
 
     if (key === "maxIterations") {
-      values.maxIterations = Number(value);
+      const parsed = parsePositiveInt(value);
+      if (parsed === undefined || parsed < 1) {
+        warnings.push(`invalid maxIterations '${value}' — using default`);
+        continue;
+      }
+      values.maxIterations = parsed;
       continue;
     }
 
@@ -72,7 +95,20 @@ const parseFrontmatter = (
     }
   }
 
-  return { body, values };
+  // Guard against inverted ranges.
+  if (
+    values.minIterations !== undefined &&
+    values.maxIterations !== undefined &&
+    values.minIterations > values.maxIterations
+  ) {
+    warnings.push(
+      `minIterations (${values.minIterations}) > maxIterations (${values.maxIterations}) — using defaults`,
+    );
+    delete values.minIterations;
+    delete values.maxIterations;
+  }
+
+  return { body, values, warnings };
 };
 
 const extractSections = (body: string): ReviewRules["sections"] => {
@@ -124,5 +160,29 @@ export function parseRules(input: string | null | undefined): ReviewRules {
       ...extractSections(body),
       raw: input,
     },
+  };
+}
+
+export function parseRulesWithWarnings(input: string | null | undefined): {
+  rules: ReviewRules;
+  warnings: string[];
+} {
+  if (!input || !input.trim()) {
+    return { rules: DEFAULT_RULES, warnings: [] };
+  }
+
+  const { body, values, warnings } = parseFrontmatter(input);
+
+  return {
+    rules: {
+      minIterations: values.minIterations ?? DEFAULT_RULES.minIterations,
+      maxIterations: values.maxIterations ?? DEFAULT_RULES.maxIterations,
+      qualityGate: values.qualityGate ?? DEFAULT_RULES.qualityGate,
+      sections: {
+        ...extractSections(body),
+        raw: input,
+      },
+    },
+    warnings,
   };
 }
