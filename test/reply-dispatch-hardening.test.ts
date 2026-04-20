@@ -58,12 +58,15 @@ describe("reply_dispatch hardening", () => {
     const handler = createReplyDispatchHandler({
       config: enabledConfig,
       runtime: {
-        spawnSubagent: vi.fn(),
         readWorkspaceFile: vi.fn(async () => {
           throw new Error("fs blew up");
         }),
         logger,
-        getConfigSection: () => undefined,
+        subagent: {
+          run: vi.fn(),
+          waitForRun: vi.fn(),
+          getSessionMessages: vi.fn(),
+        },
       },
       editsCollector: {
         getEdits: () => [],
@@ -105,10 +108,13 @@ describe("reply_dispatch hardening", () => {
     const handler = createReplyDispatchHandler({
       config: enabledConfig,
       runtime: {
-        spawnSubagent: vi.fn(),
         readWorkspaceFile: vi.fn(async () => "# rules"),
         logger,
-        getConfigSection: () => undefined,
+        subagent: {
+          run: vi.fn(),
+          waitForRun: vi.fn(),
+          getSessionMessages: vi.fn(),
+        },
       },
       editsCollector: {
         getEdits: () => [],
@@ -146,10 +152,13 @@ describe("reply_dispatch hardening", () => {
     const handler = createReplyDispatchHandler({
       config: enabledConfig,
       runtime: {
-        spawnSubagent: vi.fn(),
         readWorkspaceFile: vi.fn(async () => "# rules"),
         logger,
-        getConfigSection: () => undefined,
+        subagent: {
+          run: vi.fn(),
+          waitForRun: vi.fn(),
+          getSessionMessages: vi.fn(),
+        },
       },
       editsCollector: {
         // This throws from inside the loop to simulate catastrophic failure.

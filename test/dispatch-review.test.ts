@@ -1,19 +1,20 @@
 import { describe, expect, it, vi } from "vitest";
 
-import type { SpawnSubagentFn } from "../src/runtime-api.js";
 import { dispatchReview } from "../src/dispatch-review.js";
 
 describe("dispatchReview", () => {
-  it("calls spawnSubagent with the configured reviewer agentId and model", async () => {
-    const spawn = vi.fn<SpawnSubagentFn>().mockResolvedValue({
-      status: "ok",
-      runId: "rv1",
-      childSessionKey: "rvs1",
-      summary: "Findings: error: /a.ts:10 - null deref",
+  it("runs the reviewer subagent and parses the latest assistant summary", async () => {
+    const run = vi.fn().mockResolvedValue({ runId: "rv1" });
+    const waitForRun = vi.fn().mockResolvedValue({ status: "ok" });
+    const getSessionMessages = vi.fn().mockResolvedValue({
+      messages: [
+        { role: "user", text: "review" },
+        { role: "assistant", text: "Findings: error: /a.ts:10 - null deref" },
+      ],
     });
 
     const output = await dispatchReview({
-      runtime: { spawnSubagent: spawn },
+      runtime: { subagent: { run, waitForRun, getSessionMessages } },
       parentSessionKey: "ps",
       reviewerAgentId: "code-reviewer",
       reviewerModel: "claude-sonnet-4-6",
@@ -21,31 +22,31 @@ describe("dispatchReview", () => {
       runTimeoutSeconds: 120,
     });
 
-    expect(spawn).toHaveBeenCalledWith(
+    expect(run).toHaveBeenCalledWith(
       expect.objectContaining({
-        agentId: "code-reviewer",
+        message: "review",
         model: "claude-sonnet-4-6",
-        mode: "run",
-        thread: false,
-        task: "review",
-        runTimeoutSeconds: 120,
+        deliver: false,
       }),
-      { agentSessionKey: "ps" },
     );
+    expect(waitForRun).toHaveBeenCalledWith({ runId: "rv1", timeoutMs: 120_000 });
+    const sessionKey = run.mock.calls[0]?.[0]?.sessionKey;
+    expect(getSessionMessages).toHaveBeenCalledWith({ sessionKey, limit: 5 });
     expect(output.verdict).toBe("issues");
     expect(output.issues[0]).toMatchObject({ severity: "error", file: "/a.ts", line: 10 });
   });
 
   it("returns clean verdict when summary has no issues", async () => {
-    const spawn = vi.fn<SpawnSubagentFn>().mockResolvedValue({
-      status: "ok",
-      runId: "r",
-      childSessionKey: "s",
-      summary: "Looks good.",
-    });
-
     const output = await dispatchReview({
-      runtime: { spawnSubagent: spawn },
+      runtime: {
+        subagent: {
+          run: vi.fn().mockResolvedValue({ runId: "r" }),
+          waitForRun: vi.fn().mockResolvedValue({ status: "ok" }),
+          getSessionMessages: vi.fn().mockResolvedValue({
+            messages: [{ role: "assistant", text: "Looks good." }],
+          }),
+        },
+      },
       parentSessionKey: "ps",
       reviewerAgentId: "code-reviewer",
       reviewerModel: "x",
@@ -56,12 +57,16 @@ describe("dispatchReview", () => {
     expect(output.verdict).toBe("clean");
   });
 
-  it("throws on spawn error", async () => {
-    const spawn = vi.fn<SpawnSubagentFn>().mockResolvedValue({ status: "error", error: "boom" });
-
+  it("throws on subagent error", async () => {
     await expect(
       dispatchReview({
-        runtime: { spawnSubagent: spawn },
+        runtime: {
+          subagent: {
+            run: vi.fn().mockResolvedValue({ runId: "r" }),
+            waitForRun: vi.fn().mockResolvedValue({ status: "error", error: "boom" }),
+            getSessionMessages: vi.fn(),
+          },
+        },
         parentSessionKey: "ps",
         reviewerAgentId: "r",
         reviewerModel: "m",

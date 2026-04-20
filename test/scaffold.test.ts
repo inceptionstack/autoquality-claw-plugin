@@ -45,8 +45,11 @@ describe("Task 0 scaffold", () => {
     // for config validation + identity, not code entrypoints).
     const pkg = JSON.parse(
       await readFile(resolve(repoRoot, "package.json"), "utf8"),
-    ) as { openclaw?: { extensions?: string[] } };
+    ) as { openclaw?: { extensions?: string[] }; peerDependencies?: Record<string, string> };
     expect(pkg.openclaw?.extensions).toEqual(["./dist/plugin-entry.js"]);
+    expect(pkg.peerDependencies).toMatchObject({
+      openclaw: ">=2026.3.24-beta.2",
+    });
     expect(typesRaw).toContain("export type RollupKey = string;");
     expect(typesRaw).toContain("export type LoopOutcome = {");
   });

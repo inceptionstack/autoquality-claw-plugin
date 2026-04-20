@@ -1,8 +1,13 @@
-import type { SpawnSubagentFn } from "./runtime-api.js";
 import type { ReviewIssue, ReviewResult } from "./types.js";
 
+type SubagentApi = {
+  run(params: { sessionKey: string; message: string; provider?: string; model?: string; deliver?: boolean }): Promise<{ runId: string }>;
+  waitForRun(params: { runId: string; timeoutMs?: number }): Promise<{ status: "ok" | "error" | "timeout"; error?: string }>;
+  getSessionMessages(params: { sessionKey: string; limit?: number }): Promise<{ messages: unknown[] }>;
+};
+
 export type DispatchReviewInput = {
-  runtime: { spawnSubagent: SpawnSubagentFn };
+  runtime: { subagent: SubagentApi };
   parentSessionKey?: string;
   reviewerAgentId: string;
   reviewerModel: string;
@@ -30,27 +35,72 @@ const parseIssues = (text: string): ReviewIssue[] => {
   return issues;
 };
 
-export async function dispatchReview(input: DispatchReviewInput): Promise<ReviewResult> {
-  const result = await input.runtime.spawnSubagent(
-    {
-      task: input.task,
-      agentId: input.reviewerAgentId,
-      label: "autoquality-claw review",
-      model: input.reviewerModel,
-      mode: "run",
-      thread: false,
-      cleanup: "delete",
-      runTimeoutSeconds: input.runTimeoutSeconds,
-      expectsCompletionMessage: true,
-    },
-    { agentSessionKey: input.parentSessionKey },
-  );
-
-  if (result.status !== "ok") {
-    throw new Error(`autoquality-claw reviewer: ${result.status}: ${result.error ?? ""}`);
+const extractText = (value: unknown): string => {
+  if (typeof value === "string") {
+    return value;
+  }
+  if (Array.isArray(value)) {
+    return value.map(extractText).filter(Boolean).join("\n");
+  }
+  if (!value || typeof value !== "object") {
+    return "";
   }
 
-  const rawText = String(result.summary ?? "");
+  const record = value as Record<string, unknown>;
+  for (const key of ["text", "body", "message", "content"]) {
+    const text = extractText(record[key]);
+    if (text) {
+      return text;
+    }
+  }
+
+  return "";
+};
+
+const extractLatestAssistantSummary = (messages: unknown[]): string => {
+  for (let index = messages.length - 1; index >= 0; index -= 1) {
+    const message = messages[index];
+    if (!message || typeof message !== "object") {
+      continue;
+    }
+
+    const record = message as Record<string, unknown>;
+    const role = typeof record.role === "string" ? record.role : undefined;
+    if (role && role !== "assistant") {
+      continue;
+    }
+
+    const text = extractText(record);
+    if (text) {
+      return text;
+    }
+  }
+
+  return "";
+};
+
+export async function dispatchReview(input: DispatchReviewInput): Promise<ReviewResult> {
+  const sessionKey = `agent:main:subagent:autoquality-review-${Date.now()}`;
+  const { runId } = await input.runtime.subagent.run({
+    sessionKey,
+    message: input.task,
+    model: input.reviewerModel,
+    deliver: false,
+  });
+  const waitResult = await input.runtime.subagent.waitForRun({
+    runId,
+    timeoutMs: input.runTimeoutSeconds * 1000,
+  });
+
+  if (waitResult.status !== "ok") {
+    throw new Error(`autoquality-claw reviewer: ${waitResult.status}: ${waitResult.error ?? ""}`);
+  }
+
+  const { messages } = await input.runtime.subagent.getSessionMessages({
+    sessionKey,
+    limit: 5,
+  });
+  const rawText = extractLatestAssistantSummary(messages);
   const issues = parseIssues(rawText);
   const verdict: ReviewResult["verdict"] = issues.some((issue) => issue.severity === "error")
     ? "issues"

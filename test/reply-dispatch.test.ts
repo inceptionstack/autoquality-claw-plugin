@@ -51,10 +51,13 @@ describe("reply_dispatch handler", () => {
     const handler = createReplyDispatchHandler({
       config: enabledConfig,
       runtime: {
-        spawnSubagent: vi.fn(),
         readWorkspaceFile: vi.fn(async () => "---\n---\n# rules"),
         logger: { debug() {}, info() {}, warn() {}, error() {} },
-        getConfigSection: () => undefined,
+        subagent: {
+          run: vi.fn(),
+          waitForRun: vi.fn(),
+          getSessionMessages: vi.fn(),
+        },
       },
       editsCollector: {
         getEdits: () => [],
@@ -96,10 +99,13 @@ describe("reply_dispatch handler", () => {
     const handler = createReplyDispatchHandler({
       config: { ...enabledConfig, enabled: false },
       runtime: {
-        spawnSubagent: vi.fn(),
         readWorkspaceFile: vi.fn(),
         logger: { debug() {}, info() {}, warn() {}, error() {} },
-        getConfigSection: () => undefined,
+        subagent: {
+          run: vi.fn(),
+          waitForRun: vi.fn(),
+          getSessionMessages: vi.fn(),
+        },
       },
       editsCollector: {
         getEdits: () => [],

@@ -1,19 +1,17 @@
 import { describe, expect, it, vi } from "vitest";
 
-import type { SpawnSubagentFn } from "../src/runtime-api.js";
 import { dispatchFix } from "../src/dispatch-fix.js";
 
 describe("dispatchFix", () => {
-  it("spawns the fixer subagent and returns its summary", async () => {
-    const spawn = vi.fn<SpawnSubagentFn>().mockResolvedValue({
-      status: "ok",
-      runId: "fx",
-      childSessionKey: "fxs",
-      summary: "Fixed 2 issues.",
+  it("runs the fixer subagent and returns its latest assistant summary", async () => {
+    const run = vi.fn().mockResolvedValue({ runId: "fx" });
+    const waitForRun = vi.fn().mockResolvedValue({ status: "ok" });
+    const getSessionMessages = vi.fn().mockResolvedValue({
+      messages: [{ role: "assistant", text: "Fixed 2 issues." }],
     });
 
     const output = await dispatchFix({
-      runtime: { spawnSubagent: spawn },
+      runtime: { subagent: { run, waitForRun, getSessionMessages } },
       parentSessionKey: "ps",
       fixerAgentId: "coder",
       fixerModel: "claude-sonnet-4-6",
@@ -23,14 +21,14 @@ describe("dispatchFix", () => {
 
     expect(output.summary).toBe("Fixed 2 issues.");
     expect(output.runId).toBe("fx");
-    expect(spawn).toHaveBeenCalledWith(
+    expect(output.childSessionKey).toBe(run.mock.calls[0]?.[0]?.sessionKey);
+    expect(run).toHaveBeenCalledWith(
       expect.objectContaining({
-        agentId: "coder",
-        task: "Fix the null deref",
-        mode: "run",
-        sandbox: "inherit",
+        message: "Fix the null deref",
+        model: "claude-sonnet-4-6",
+        deliver: false,
       }),
-      { agentSessionKey: "ps" },
     );
+    expect(waitForRun).toHaveBeenCalledWith({ runId: "fx", timeoutMs: 180_000 });
   });
 });

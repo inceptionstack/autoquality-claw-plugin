@@ -1,43 +1,45 @@
+import { resolve } from "node:path";
+
 import { describe, expect, it, vi } from "vitest";
 
-import { plugin } from "../src/plugin-entry.js";
+import pluginEntry from "../src/plugin-entry.js";
 
-type RegisteredHook = { name: string; handler: (...args: unknown[]) => unknown };
+type RegisteredHook = (...args: unknown[]) => unknown;
 
 async function wire() {
-  const registered: RegisteredHook[] = [];
+  const hooks = new Map<string, RegisteredHook>();
   const runtime = {
-    spawnSubagent: vi.fn().mockResolvedValue({
-      status: "ok",
-      runId: "child",
-      childSessionKey: "cs",
-      summary: "LGTM",
-    }),
-    readWorkspaceFile: vi
-      .fn()
-      .mockResolvedValue(
-        "---\nminIterations: 1\nmaxIterations: 2\nqualityGate: lgtm\n---\n# rules\n\n## Reviewer instructions\nbe strict.",
-      ),
-    logger: { debug() {}, info() {}, warn() {}, error() {} },
-    getConfigSection: <T>() => ({ anthropicApiKeyEnv: "NOPE" } as unknown as T),
+    agent: {
+      resolveAgentWorkspaceDir: vi.fn(() => resolve(import.meta.dirname, "..", "examples")),
+    },
+    subagent: {
+      run: vi.fn().mockResolvedValue({ runId: "child" }),
+      waitForRun: vi.fn().mockResolvedValue({ status: "ok" }),
+      getSessionMessages: vi.fn().mockResolvedValue({
+        messages: [{ role: "assistant", text: "LGTM" }],
+      }),
+    },
   };
 
   process.env.NOPE = "test-key";
 
-  await plugin.registerHooks(
-    (registration) => {
-      registered.push(registration);
-    },
+  pluginEntry.register({
+    pluginConfig: { anthropicApiKeyEnv: "NOPE" },
+    config: {},
+    logger: { debug() {}, info() {}, warn() {}, error() {} },
     runtime,
-  );
+    on: vi.fn((hookName: string, handler: RegisteredHook) => {
+      hooks.set(hookName, handler);
+    }),
+  } as any);
 
-  const byName = (name: string): RegisteredHook["handler"] => {
-    const registration = registered.find((entry) => entry.name === name);
+  const byName = (name: string): RegisteredHook => {
+    const registration = hooks.get(name);
     if (!registration) {
       throw new Error(`missing registration: ${name}`);
     }
 
-    return registration.handler;
+    return registration;
   };
 
   return { runtime, byName };
@@ -66,6 +68,6 @@ describe("autoquality-claw end-to-end (mocked gatekeeper)", () => {
     const ended = byName("subagent_ended");
     await ended({ targetSessionKey: "cs", targetKind: "subagent", reason: "done" });
 
-    expect(runtime.spawnSubagent).not.toHaveBeenCalled();
+    expect(runtime.subagent.run).not.toHaveBeenCalled();
   });
 });

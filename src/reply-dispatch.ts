@@ -3,7 +3,7 @@ import { dispatchFix } from "./dispatch-fix.js";
 import { dispatchReview } from "./dispatch-review.js";
 import { formatFinalMessage } from "./format-output.js";
 import { runAutoLoop } from "./loop.js";
-import type { PluginRuntime } from "./runtime-api.js";
+import type { PluginLogger } from "./runtime-api.js";
 import { parseRules, parseRulesWithWarnings } from "./rules.js";
 import type { Decision, Edit, LoopOutcome } from "./types.js";
 
@@ -23,7 +23,7 @@ export type ReplyDispatcher = {
 };
 
 export type ReplyDispatchEvent = {
-  ctx?: {
+  ctx?: Record<string, unknown> & {
     finalReply?: ReplyPayload;
     sessionKey?: string;
     workspaceDir?: string;
@@ -63,7 +63,15 @@ export type EditsCollectorLike = {
 
 export type CreateReplyDispatchHandlerDeps = {
   config: AutoClawConfig;
-  runtime: PluginRuntime;
+  runtime: {
+    logger: PluginLogger;
+    readWorkspaceFile(relativePath: string): Promise<string | null>;
+    subagent: {
+      run(params: { sessionKey: string; message: string; provider?: string; model?: string; deliver?: boolean }): Promise<{ runId: string }>;
+      waitForRun(params: { runId: string; timeoutMs?: number }): Promise<{ status: "ok" | "error" | "timeout"; error?: string }>;
+      getSessionMessages(params: { sessionKey: string; limit?: number }): Promise<{ messages: unknown[] }>;
+    };
+  };
   editsCollector: EditsCollectorLike;
   gatekeeper: {
     decide(input: {
@@ -103,7 +111,6 @@ export function createReplyDispatchHandler(deps: CreateReplyDispatchHandlerDeps)
     const originalText = String(originalReply.text ?? "");
     const rollupKey = event.runId ?? event.sessionKey ?? "unknown-run";
     const parentSessionKey = event.sessionKey ?? event.ctx?.sessionKey;
-    const workspaceDir = event.ctx?.workspaceDir;
 
     // Tracks whether sendFinalReply was invoked so error paths never double-send.
     let finalSent = false;
@@ -124,7 +131,7 @@ export function createReplyDispatchHandler(deps: CreateReplyDispatchHandlerDeps)
       // failure still lets us deliver the original reply to the user.
       let rules;
       try {
-        const rulesRaw = await deps.runtime.readWorkspaceFile(deps.config.rulesPath, { workspaceDir });
+        const rulesRaw = await deps.runtime.readWorkspaceFile(deps.config.rulesPath);
         if (!rulesRaw || !rulesRaw.trim()) {
           deps.runtime.logger.warn(
             `autoquality-claw: rules file '${deps.config.rulesPath}' missing or empty — using defaults`,
@@ -146,7 +153,7 @@ export function createReplyDispatchHandler(deps: CreateReplyDispatchHandlerDeps)
         deps.review ??
         ((params: { reviewerAgentId?: string; reviewerModel?: string; task: string }) =>
           dispatchReview({
-            runtime: deps.runtime,
+            runtime: { subagent: deps.runtime.subagent },
             parentSessionKey,
             reviewerAgentId: params.reviewerAgentId ?? deps.config.reviewerAgentId,
             reviewerModel: params.reviewerModel ?? deps.config.defaultReviewerModel,
@@ -157,7 +164,7 @@ export function createReplyDispatchHandler(deps: CreateReplyDispatchHandlerDeps)
         deps.fix ??
         ((params: { fixerAgentId?: string; fixerModel?: string; prompt: string }) =>
           dispatchFix({
-            runtime: deps.runtime,
+            runtime: { subagent: deps.runtime.subagent },
             parentSessionKey,
             fixerAgentId: params.fixerAgentId ?? deps.config.fixerAgentId,
             fixerModel: params.fixerModel ?? deps.config.defaultFixerModel,
