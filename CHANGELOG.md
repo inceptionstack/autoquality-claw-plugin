@@ -4,6 +4,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.2] - 2026-04-20
+
+First version that actually works against a real OpenClaw host. All prior versions used a hand-rolled plugin contract that didn't match the real SDK.
+
+### Changed (BREAKING — adapter/wiring only, zero business-logic changes)
+- Entry shape migrated to `definePluginEntry({ register(api) { api.on(hook, handler, { priority }) } })` — matches the real OpenClaw plugin SDK contract.
+- Hook registration uses `api.on(hookName, handler, opts)` instead of a hand-rolled `register({ name, handler })`.
+- Config accessed via `api.pluginConfig` instead of `runtime.getConfigSection(...)`.
+- Subagent flow is now the real 3-step API: `api.runtime.subagent.run()` → `waitForRun()` → `getSessionMessages()`.
+- `src/runtime-api.ts` now re-exports `OpenClawPluginApi`, `PluginLogger`, `PluginRuntime`, `SubagentRunParams`, `SubagentRunResult` from `openclaw/plugin-sdk` instead of shipping hand-rolled equivalents.
+- `openclaw` added as a `peerDependency` at `>=2026.3.24-beta.2`.
+
+### Fixed
+- Plugin now actually loads and registers hooks inside a live OpenClaw runtime (previous versions referenced APIs that don't exist).
+
 ## [0.1.0] - 2026-04-20
 
 Initial public release.

@@ -1,6 +1,6 @@
 {
   "name": "autoquality-claw",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "OpenClaw plugin: post-turn code review + fix loop against a workspace review-rules.md.",
   "license": "MIT",
   "author": "Roy Osherove",
