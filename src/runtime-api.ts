@@ -27,6 +27,10 @@ export type SpawnSubagentFn = (
   ctx: SpawnSubagentCallerCtx,
 ) => Promise<SpawnSubagentResult>;
 
+export type GatekeeperLlmLike = {
+  decide(input: { system: string; user: string }): Promise<Record<string, unknown>>;
+};
+
 export type PluginRuntime = {
   spawnSubagent: SpawnSubagentFn;
   readWorkspaceFile(relativePath: string, ctx: { workspaceDir?: string }): Promise<string | null>;
@@ -37,6 +41,14 @@ export type PluginRuntime = {
     error(msg: string): void;
   };
   getConfigSection<T>(sectionId: string): T | undefined;
+  /**
+   * Optional: if the host OpenClaw has an LLM already configured (Bedrock,
+   * Mantle, OpenAI, Anthropic, etc.), expose it here and auto-claw will use
+   * it for the gatekeeper instead of constructing its own Anthropic SDK
+   * client from `ANTHROPIC_API_KEY`. This is how a consumer installs the
+   * plugin on a non-Anthropic-direct provider without code changes.
+   */
+  getGatekeeperLlm?(): GatekeeperLlmLike | undefined;
 };
 
 export type PluginHookName =

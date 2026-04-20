@@ -39,7 +39,16 @@ export const plugin: PluginEntry = {
       trackSession: subagents.trackSession,
     });
     const apiKey = process.env[config.anthropicApiKeyEnv] ?? "";
-    const llm = createGatekeeperLlm({ apiKey, model: config.gatekeeperModel });
+    // Inherit the host's configured LLM client if OpenClaw provides one
+    // (Bedrock, Mantle, OpenAI, etc.). Fall back to a direct Anthropic SDK
+    // client only when the host doesn't expose one.
+    const hostLlm = runtime.getGatekeeperLlm?.();
+    const llm = hostLlm ?? createGatekeeperLlm({ apiKey, model: config.gatekeeperModel });
+    if (!hostLlm && !apiKey) {
+      runtime.logger.warn(
+        `auto-claw: no host-provided LLM via runtime.getGatekeeperLlm() and ${config.anthropicApiKeyEnv} is unset — gatekeeper calls will fail`,
+      );
+    }
     const gatekeeper = createGatekeeper({ llm });
     const onReplyDispatch = createReplyDispatchHandler({
       config,
