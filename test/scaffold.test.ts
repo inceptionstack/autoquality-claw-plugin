@@ -16,7 +16,7 @@ describe("Task 0 scaffold", () => {
 
     expect(packageJson.name).toBe("@inceptionstack/auto-claw-plugin");
     expect(packageJson.scripts).toMatchObject({
-      build: "tsc -p tsconfig.json",
+      build: "rm -rf dist && tsc -p tsconfig.build.json",
       test: "vitest run",
       "test:watch": "vitest",
       typecheck: "tsc --noEmit -p tsconfig.json",

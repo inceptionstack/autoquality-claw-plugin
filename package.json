@@ -5,7 +5,7 @@
   "main": "./dist/plugin-entry.js",
   "types": "./dist/plugin-entry.d.ts",
   "scripts": {
-    "build": "tsc -p tsconfig.json",
+    "build": "rm -rf dist && tsc -p tsconfig.build.json",
     "test": "vitest run",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit -p tsconfig.json",

@@ -1,3 +1,4 @@
+import type Anthropic from "@anthropic-ai/sdk";
 import { describe, expect, it, vi } from "vitest";
 
 import { createGatekeeperLlm } from "../src/llm.js";
@@ -13,10 +14,11 @@ describe("createGatekeeperLlm.decide", () => {
         },
       ],
     });
+    const client = { messages: { create: fakeCreate } } as unknown as Pick<Anthropic, "messages">;
     const llm = createGatekeeperLlm({
       apiKey: "k",
       model: "m",
-      client: { messages: { create: fakeCreate } } as any,
+      client,
     });
 
     const output = await llm.decide({ system: "sys", user: "usr" });
@@ -27,10 +29,11 @@ describe("createGatekeeperLlm.decide", () => {
 
   it("throws if the model returns no tool_use block", async () => {
     const fakeCreate = vi.fn().mockResolvedValue({ content: [{ type: "text", text: "no tool" }] });
+    const client = { messages: { create: fakeCreate } } as unknown as Pick<Anthropic, "messages">;
     const llm = createGatekeeperLlm({
       apiKey: "k",
       model: "m",
-      client: { messages: { create: fakeCreate } } as any,
+      client,
     });
 
     await expect(llm.decide({ system: "s", user: "u" })).rejects.toThrow(/tool_use/);
